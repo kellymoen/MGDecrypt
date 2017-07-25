@@ -10,15 +10,22 @@ namespace MGDecrypt
     class Program
     {
         const int KEY_CONST = 0x02E90EDD;
+        public int rootEntryLength = 12;
+        public int directoryNameLength = 8;
+        public int directoryEntryLength = 8;
         static void Main(string[] args)
         {
             Program prog = new Program();
-            if (args.Length == 2)
+            if (args.Length == 3 && args[2] == "-z")
+            {
+                prog.Decrypt(args[0], args[1], true);
+            } else if (args.Length == 2)
             {
                 prog.Decrypt(args[0], args[1]);
             } else
             {
-                Console.Write("Usage mgdecrypt infile outfile");
+                Console.Write("Usage mgdecrypt infile outfile [-z]");
+                Console.Write("-z ZOE2 Decryption");
             }
         }
 
@@ -35,8 +42,34 @@ namespace MGDecrypt
                 hashed += folderName[i];
                 hashed &= bitmask;
                 i++;
-            } while (folderName[i] != 0);
+            } while (folderName[i] != 0 && i < folderName.Length-1);
             return hashed;
+        }
+
+        public uint HashFolderNameZOE(byte[] folderName)
+        {
+            uint bitmask = 0xf;
+            int i = 0;
+            uint hashed = 0;
+            uint hashed2 = 0;
+            uint a0 = 0;
+            uint a1 = folderName[0];
+            uint a2 = 0;
+            do
+            {
+                hashed = (uint)i & bitmask;
+                hashed = a1 << (byte)hashed;
+                a0 = a2 >> 3;
+                hashed2 = a1 & bitmask;
+                a0 += hashed;
+                a0 += a1;
+                hashed2 = a2 << (byte)hashed2;
+                i++;
+                a1 = folderName[i];
+                hashed2 |= a0;
+                a2 += hashed2;
+            } while (folderName[i] != 0 && i < folderName.Length - 1);
+            return a2;
         }
 
         public uint MakeFolderKeyX(uint folderHash, uint rootKey)
@@ -73,9 +106,15 @@ namespace MGDecrypt
         }
 
 
-        public void Decrypt(string inFilename, string outFilename)
+        public void Decrypt(string inFilename, string outFilename, bool zoe2 = false)
         {
             //Open bufferedStreams
+            if (zoe2)
+            {
+                  rootEntryLength = 20;
+                  directoryNameLength = 16;
+                  directoryEntryLength = 12;
+             }
             BufferedStream reader = new BufferedStream(File.Open(inFilename, FileMode.Open));
             BufferedStream writer = new BufferedStream(File.Open(outFilename, FileMode.OpenOrCreate));
             byte[] rootTableEncrypted = new byte[16];
@@ -88,23 +127,30 @@ namespace MGDecrypt
             writer.Write(rootTableDecrypted, 0, rootTableDecrypted.Length);
 
             int directoryCount = BitConverter.ToInt16(rootTableDecrypted, 8);
-            rootTableEncrypted = new byte[directoryCount * 12];
-            rootTableDecrypted = new byte[directoryCount * 12];
+            rootTableEncrypted = new byte[directoryCount * rootEntryLength];
+            rootTableDecrypted = new byte[directoryCount * rootEntryLength];
             reader.Read(rootTableEncrypted, 0, rootTableEncrypted.Length);
             keyX = DecryptRoutine(keyX, keyY, 0, rootTableEncrypted, rootTableDecrypted);
             writer.Write(rootTableDecrypted, 0, rootTableDecrypted.Length);
             Directory[] directories = new Directory[directoryCount];
             for (int i = 0; i < directoryCount; i++)
             {
-                byte[] directoryName = new byte[8];
-                for (int j = 0; j < 8; j++)
+                byte[] directoryName = new byte[directoryNameLength];
+                for (int j = 0; j < directoryNameLength; j++)
                 {
-                    directoryName[j] = rootTableDecrypted[(i * 12) + j];
+                    directoryName[j] = rootTableDecrypted[(i * rootEntryLength) + j];
                 }
-                uint folderHash = HashFolderName(directoryName);
+                uint folderHash;
+                if (zoe2)
+                {
+                    folderHash = HashFolderNameZOE(directoryName);
+                } else
+                {
+                    folderHash = HashFolderName(directoryName);
+                }
                 uint folderKeyX = MakeFolderKeyX(folderHash, rootKey);
                 uint folderKeyY = MakeFolderKeyY(folderHash);
-                uint offset = BitConverter.ToUInt32(rootTableDecrypted, (i * 12) + 8);
+                uint offset = BitConverter.ToUInt32(rootTableDecrypted, (i * rootEntryLength) + directoryNameLength);
                 offset *= 2048;
                 directories[i] = new Directory(folderHash, folderKeyX, folderKeyY, System.Text.Encoding.Default.GetString(directoryName).TrimEnd('\0'), offset);
             }
@@ -121,11 +167,11 @@ namespace MGDecrypt
                 reader.Read(folderEncryptedEntries, 0, 4);
                 uint nextKeyX = DecryptRoutine(directories[i].keyX, directories[i].keyY, 0, folderEncryptedEntries, folderDecryptedEntries);
                 int tableLength = BitConverter.ToInt32(folderDecryptedEntries,0); 
-                byte[] folderTableEncrypted = new byte[tableLength*8];
-                byte[] folderTableDecrypted = new byte[tableLength * 8];
-                reader.Read(folderTableEncrypted, 0, tableLength * 8);
+                byte[] folderTableEncrypted = new byte[tableLength * directoryEntryLength];
+                byte[] folderTableDecrypted = new byte[tableLength * directoryEntryLength];
+                reader.Read(folderTableEncrypted, 0, tableLength * directoryEntryLength);
                 DecryptRoutine(nextKeyX, directories[i].keyY, 0, folderTableEncrypted, folderTableDecrypted);
-                byte[] joinedDecryptedTable = new byte[tableLength * 8 + 4];
+                byte[] joinedDecryptedTable = new byte[tableLength * directoryEntryLength + 4];
                 folderDecryptedEntries.CopyTo(joinedDecryptedTable, 0);
                 folderTableDecrypted.CopyTo(joinedDecryptedTable, 4);
                 directories[i].SetDirectoryTable(joinedDecryptedTable);
@@ -140,7 +186,7 @@ namespace MGDecrypt
                 {
                     directoryLength = (uint)reader.Length - directories[i].offset;
                 }
-                fileList.AddRange(directories[i].GetFilesFromTable(directoryLength));
+                fileList.AddRange(directories[i].GetFilesFromTable(directoryLength, directoryEntryLength));
             }
             //Now we have the list of files iterate through them and if needed decrypt, otherwise copy. Decryption done!!
             for (int i = 0; i < fileList.Count; i++)
@@ -199,7 +245,7 @@ namespace MGDecrypt
             this.directoryTable = directoryTable;
         }
 
-        public List<DirectoryFile> GetFilesFromTable(uint directoryLength)
+        public List<DirectoryFile> GetFilesFromTable(uint directoryLength, int directoryEntryLength)
         {
             if (directoryTable == null)
             {
@@ -210,10 +256,10 @@ namespace MGDecrypt
             uint tableSectorLength = ((uint)Math.Ceiling(directoryTable.Length / (double)2048)) * 2048;
             for (int i = 0; i < tableEntries; i++)
             {
-                uint fileCheck = BitConverter.ToUInt32(directoryTable, i * 8 + 4);
+                uint fileCheck = BitConverter.ToUInt32(directoryTable, i * directoryEntryLength + 4);
                 if (fileCheck >> 24 == 0x7E)
                 {
-                    uint fOffset = BitConverter.ToUInt32(directoryTable, i * 8 + 8) + offset + tableSectorLength;
+                    uint fOffset = BitConverter.ToUInt32(directoryTable, i * directoryEntryLength + directoryEntryLength) + offset + tableSectorLength;
                     uint fileLength = fileCheck ^ 0x7E000000;
                     files.Add(new DirectoryFile(true, fOffset, fileLength));
                 }
