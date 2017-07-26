@@ -14,23 +14,27 @@ namespace MGDecrypt
         public int directoryNameLength = 8;
         public int directoryEntryLength = 8;
         public enum Games {MGS2, ZOE2, MGS3 };
+
         static void Main(string[] args)
         {
-            Program prog = new Program();
-            if (args.Length == 3 && args[2] == "-zoe2")
-            {
-                prog.Decrypt(args[0], args[1], Games.ZOE2);
-            }
-            else if(args.Length == 3 && args[2] == "-mgs3")
-            {
-                prog.Decrypt(args[0], args[1], Games.MGS3);
-            } else if (args.Length == 3 && args[2] == "-mgs2")
-            {
-                prog.Decrypt(args[0], args[1], Games.MGS2);
-            } else
+            if (args.Length != 3)
             {
                 Console.Write("Usage mgdecrypt infile outfile -game");
                 Console.Write("game options -- zoe2 mgs2 mgs3");
+                return;
+            }
+            Program prog = new Program();
+            if (args[2] == "-zoe2")
+            {
+                prog.Decrypt(args[0], args[1], Games.ZOE2);
+            }
+            else if(args[2] == "-mgs3")
+            {
+                prog.Decrypt(args[0], args[1], Games.MGS3);
+            }
+            else if (args[2] == "-mgs2")
+            {
+                prog.Decrypt(args[0], args[1], Games.MGS2);
             }
         }
 
