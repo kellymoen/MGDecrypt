@@ -2,16 +2,15 @@
 {
     class DirectoryFile
     {
-        public bool crypted;
-        public uint offset;
-        public uint length;
+        public bool Crypted { get; private set; }
+        public uint Offset { get; private set; }
+        public uint Length { get; private set; }
 
         public DirectoryFile(bool crypted, uint offset, uint length)
         {
-            this.crypted = crypted;
-            this.offset = offset;
-            this.length = length;
-
+            Crypted = crypted;
+            Offset = offset;
+            Length = length;
         }
     }
 }

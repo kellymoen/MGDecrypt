@@ -51,8 +51,8 @@ namespace MGDecrypt
             uint uncryptedDataPos;
             if (files.Count > 0)
             {
-                uint lastFileSectorLength = ((uint)Math.Ceiling(files[files.Count - 1].length / (double)2048)) * 2048;
-                uint lastFileOffset = (files[files.Count - 1].offset);
+                uint lastFileSectorLength = ((uint)Math.Ceiling(files[files.Count - 1].Length / (double)2048)) * 2048;
+                uint lastFileOffset = (files[files.Count - 1].Offset);
                 uncryptedDataPos = lastFileOffset + lastFileSectorLength - offset;
             }
             else

@@ -205,12 +205,12 @@ namespace MGDecrypt
             //Now we have the list of files iterate through them and if needed decrypt, otherwise copy. Decryption done!!
             for (int i = 0; i < fileList.Count; i++)
                 {
-                uint wordFileLength = ((uint)Math.Ceiling(fileList[i].length / (double)4)) * 4;
+                uint wordFileLength = ((uint)Math.Ceiling(fileList[i].Length / (double)4)) * 4;
                 byte[] fileData = new byte[wordFileLength];
-                    reader.Seek(fileList[i].offset, SeekOrigin.Begin);
-                    writer.Seek(fileList[i].offset, SeekOrigin.Begin);
+                    reader.Seek(fileList[i].Offset, SeekOrigin.Begin);
+                    writer.Seek(fileList[i].Offset, SeekOrigin.Begin);
                     reader.Read(fileData, 0, fileData.Length);
-                    if (fileList[i].crypted)
+                    if (fileList[i].Crypted)
                     {
                     byte[] decryptedFileData = new byte[wordFileLength];
 
