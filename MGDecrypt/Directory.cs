@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MGDecrypt
 {
@@ -21,11 +22,11 @@ namespace MGDecrypt
             Offset = offset;
         }
 
-        public List<DirectoryFile> GetFilesFromTable(uint directoryLength, int directoryEntryLength)
+        public IEnumerable<DirectoryFile> GetFilesFromTable(uint directoryLength, int directoryEntryLength)
         {
             if (DirectoryTable == null)
             {
-                return null;
+                return Enumerable.Empty<DirectoryFile>();
             }
             List<DirectoryFile> files = new List<DirectoryFile>();
             int tableEntries = BitConverter.ToInt32(DirectoryTable, 0);
