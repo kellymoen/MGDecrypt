@@ -13,19 +13,24 @@ namespace MGDecrypt
         public int rootEntryLength = 12;
         public int directoryNameLength = 8;
         public int directoryEntryLength = 8;
+        public enum Games {MGS2, ZOE2, MGS3 };
         static void Main(string[] args)
         {
             Program prog = new Program();
-            if (args.Length == 3 && args[2] == "-z")
+            if (args.Length == 3 && args[2] == "-zoe2")
             {
-                prog.Decrypt(args[0], args[1], true);
-            } else if (args.Length == 2)
+                prog.Decrypt(args[0], args[1], Games.ZOE2);
+            }
+            else if(args.Length == 3 && args[2] == "-mgs3")
             {
-                prog.Decrypt(args[0], args[1]);
+                prog.Decrypt(args[0], args[1], Games.MGS3);
+            } else if (args.Length == 3 && args[2] == "-mgs2")
+            {
+                prog.Decrypt(args[0], args[1], Games.MGS2);
             } else
             {
-                Console.Write("Usage mgdecrypt infile outfile [-z]");
-                Console.Write("-z ZOE2 Decryption");
+                Console.Write("Usage mgdecrypt infile outfile -game");
+                Console.Write("game options -- zoe2 mgs2 mgs3");
             }
         }
 
@@ -106,15 +111,20 @@ namespace MGDecrypt
         }
 
 
-        public void Decrypt(string inFilename, string outFilename, bool zoe2 = false)
+        public void Decrypt(string inFilename, string outFilename, Games game = Games.MGS2)
         {
             //Open bufferedStreams
-            if (zoe2)
+            if (game == Games.ZOE2)
             {
-                  rootEntryLength = 20;
-                  directoryNameLength = 16;
-                  directoryEntryLength = 12;
-             }
+                rootEntryLength = 20;
+                directoryNameLength = 16;
+                directoryEntryLength = 12;
+            } else if (game == Games.MGS3)
+            {
+                rootEntryLength = 20;
+                directoryNameLength = 16;
+                directoryEntryLength = 8;
+            }
             BufferedStream reader = new BufferedStream(File.Open(inFilename, FileMode.Open));
             BufferedStream writer = new BufferedStream(File.Open(outFilename, FileMode.OpenOrCreate));
             byte[] rootTableEncrypted = new byte[16];
@@ -141,7 +151,7 @@ namespace MGDecrypt
                     directoryName[j] = rootTableDecrypted[(i * rootEntryLength) + j];
                 }
                 uint folderHash;
-                if (zoe2)
+                if (game == Games.ZOE2)
                 {
                     folderHash = HashFolderNameZOE(directoryName);
                 } else
