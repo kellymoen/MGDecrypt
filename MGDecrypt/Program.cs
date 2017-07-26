@@ -6,8 +6,7 @@ namespace MGDecrypt
 {
     class Program
     {
-        const int KEY_CONST = 0x02E90EDD;
-
+        private const int KEY_CONST = 0x02E90EDD;
 
         static void Main(string[] args)
         {
@@ -30,11 +29,10 @@ namespace MGDecrypt
                 return;
             }
 
-            Program prog = new Program();
-            prog.Decrypt(args[0], args[1], game);
+            Decrypt(args[0], args[1], game);
         }
 
-        public uint HashFolderName(byte[] folderName)
+        public static uint HashFolderName(byte[] folderName)
         {
             uint bitmask = 0xffffff;
             int i = 0;
@@ -51,7 +49,7 @@ namespace MGDecrypt
             return hashed;
         }
 
-        public uint HashFolderNameZOE(byte[] folderName)
+        public static uint HashFolderNameZOE(byte[] folderName)
         {
             uint bitmask = 0xf;
             int i = 0;
@@ -77,7 +75,7 @@ namespace MGDecrypt
             return a2;
         }
 
-        public uint MakeFolderKeyX(uint folderHash, uint rootKey)
+        public static uint MakeFolderKeyX(uint folderHash, uint rootKey)
         {
             uint folderConst = 0xA78925D9;
             uint folderKey = folderHash << 0x7;
@@ -87,7 +85,7 @@ namespace MGDecrypt
             return folderKey;
         }
 
-        public uint MakeFolderKeyY(uint folderHash)
+        public static uint MakeFolderKeyY(uint folderHash)
         {
             uint folderConst = 0x7A88FB59;
             uint folderKey = folderHash << 0x7;
@@ -96,7 +94,7 @@ namespace MGDecrypt
             return folderKey;
         }
 
-        public uint DecryptRoutine(uint keyX, uint keyY, int offset, byte[] input, byte[] output)
+        public static uint DecryptRoutine(uint keyX, uint keyY, int offset, byte[] input, byte[] output)
         {
             for (int i = offset; i < input.Length; i += 4)
             {
@@ -110,7 +108,7 @@ namespace MGDecrypt
             return keyX;
         }
 
-        public void Decrypt(string inFilename, string outFilename, Game game)
+        public static void Decrypt(string inFilename, string outFilename, Game game)
         {
             BufferedStream reader = new BufferedStream(File.Open(inFilename, FileMode.Open));
             BufferedStream writer = new BufferedStream(File.Open(outFilename, FileMode.OpenOrCreate));
