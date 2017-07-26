@@ -172,33 +172,33 @@ namespace MGDecrypt
             List<DirectoryFile> fileList = new List<DirectoryFile>();
             for (int i = 0; i < directories.Length; i++)
             {
-                reader.Seek(directories[i].offset, SeekOrigin.Begin);
-                writer.Seek(directories[i].offset, SeekOrigin.Begin);
+                reader.Seek(directories[i].Offset, SeekOrigin.Begin);
+                writer.Seek(directories[i].Offset, SeekOrigin.Begin);
             
 
                 byte[] folderEncryptedEntries = new byte[4];
                 byte[] folderDecryptedEntries = new byte[4];
                 reader.Read(folderEncryptedEntries, 0, 4);
-                uint nextKeyX = DecryptRoutine(directories[i].keyX, directories[i].keyY, 0, folderEncryptedEntries, folderDecryptedEntries);
+                uint nextKeyX = DecryptRoutine(directories[i].KeyX, directories[i].KeyY, 0, folderEncryptedEntries, folderDecryptedEntries);
                 int tableLength = BitConverter.ToInt32(folderDecryptedEntries,0); 
                 byte[] folderTableEncrypted = new byte[tableLength * directoryEntryLength];
                 byte[] folderTableDecrypted = new byte[tableLength * directoryEntryLength];
                 reader.Read(folderTableEncrypted, 0, tableLength * directoryEntryLength);
-                DecryptRoutine(nextKeyX, directories[i].keyY, 0, folderTableEncrypted, folderTableDecrypted);
+                DecryptRoutine(nextKeyX, directories[i].KeyY, 0, folderTableEncrypted, folderTableDecrypted);
                 byte[] joinedDecryptedTable = new byte[tableLength * directoryEntryLength + 4];
                 folderDecryptedEntries.CopyTo(joinedDecryptedTable, 0);
                 folderTableDecrypted.CopyTo(joinedDecryptedTable, 4);
-                directories[i].SetDirectoryTable(joinedDecryptedTable);
+                directories[i].DirectoryTable = joinedDecryptedTable;
                 writer.Write(joinedDecryptedTable, 0, joinedDecryptedTable.Length);
 
                 uint directoryLength;
                 if (i < directories.Length - 1)
                 {
-                    directoryLength = directories[i + 1].offset - directories[i].offset;
+                    directoryLength = directories[i + 1].Offset - directories[i].Offset;
                 }
                 else
                 {
-                    directoryLength = (uint)reader.Length - directories[i].offset;
+                    directoryLength = (uint)reader.Length - directories[i].Offset;
                 }
                 fileList.AddRange(directories[i].GetFilesFromTable(directoryLength, directoryEntryLength));
             }

@@ -5,42 +5,37 @@ namespace MGDecrypt
 {
     class Directory
     {
-        public uint hash;
-        public uint keyX;
-        public uint keyY;
-        public uint offset;
-        public string folderName;
-        byte[] directoryTable;
+        public uint Hash { get; private set; }
+        public uint KeyX { get; private set; }
+        public uint KeyY { get; private set; }
+        public uint Offset { get; private set; }
+        public string FolderName { get; private set; }
+        public byte[] DirectoryTable { private get; set; }
 
         public Directory(uint folderHash, uint folderKeyX, uint folderKeyY, string folderName, uint offset)
         {
-            this.hash = folderHash;
-            this.keyX = folderKeyX;
-            this.keyY = folderKeyY;
-            this.folderName = folderName;
-            this.offset = offset;
-        }
-
-        public void SetDirectoryTable(byte[] directoryTable)
-        {
-            this.directoryTable = directoryTable;
+            Hash = folderHash;
+            KeyX = folderKeyX;
+            KeyY = folderKeyY;
+            FolderName = folderName;
+            Offset = offset;
         }
 
         public List<DirectoryFile> GetFilesFromTable(uint directoryLength, int directoryEntryLength)
         {
-            if (directoryTable == null)
+            if (DirectoryTable == null)
             {
                 return null;
             }
             List<DirectoryFile> files = new List<DirectoryFile>();
-            int tableEntries = BitConverter.ToInt32(directoryTable, 0);
-            uint tableSectorLength = ((uint)Math.Ceiling(directoryTable.Length / (double)2048)) * 2048;
+            int tableEntries = BitConverter.ToInt32(DirectoryTable, 0);
+            uint tableSectorLength = ((uint)Math.Ceiling(DirectoryTable.Length / (double)2048)) * 2048;
             for (int i = 0; i < tableEntries; i++)
             {
-                uint fileCheck = BitConverter.ToUInt32(directoryTable, i * directoryEntryLength + 4);
+                uint fileCheck = BitConverter.ToUInt32(DirectoryTable, i * directoryEntryLength + 4);
                 if (fileCheck >> 24 == 0x7E)
                 {
-                    uint fOffset = BitConverter.ToUInt32(directoryTable, i * directoryEntryLength + directoryEntryLength) + offset + tableSectorLength;
+                    uint fOffset = BitConverter.ToUInt32(DirectoryTable, i * directoryEntryLength + directoryEntryLength) + Offset + tableSectorLength;
                     uint fileLength = fileCheck ^ 0x7E000000;
                     files.Add(new DirectoryFile(true, fOffset, fileLength));
                 }
@@ -53,7 +48,7 @@ namespace MGDecrypt
             {
                 uint lastFileSectorLength = ((uint)Math.Ceiling(files[files.Count - 1].Length / (double)2048)) * 2048;
                 uint lastFileOffset = (files[files.Count - 1].Offset);
-                uncryptedDataPos = lastFileOffset + lastFileSectorLength - offset;
+                uncryptedDataPos = lastFileOffset + lastFileSectorLength - Offset;
             }
             else
             {
@@ -61,7 +56,7 @@ namespace MGDecrypt
             }
             if (uncryptedDataPos < directoryLength)
             {
-                uint fOffset = uncryptedDataPos + offset;
+                uint fOffset = uncryptedDataPos + Offset;
                 uint fileLength = directoryLength - uncryptedDataPos;
                 files.Add(new DirectoryFile(false, fOffset, fileLength));
             }
