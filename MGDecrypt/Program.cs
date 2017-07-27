@@ -34,16 +34,13 @@ namespace MGDecrypt
 
         public static uint HashFolderName(byte[] folderName)
         {
-            uint bitmask = 0xffffff;
             int i = 0;
             uint hashed = 0;
             do
             {
-                uint hashRight = hashed >> 0x13;
-                uint hashLeft = hashed << 0x5;
-                hashed = hashLeft | hashRight;
+                hashed = hashed << 0x5 | hashed >> 0x13;
                 hashed += folderName[i];
-                hashed &= bitmask;
+                hashed &= 0xffffff;
                 i++;
             } while (folderName[i] != 0 && i < folderName.Length-1);
             return hashed;
@@ -51,7 +48,6 @@ namespace MGDecrypt
 
         public static uint HashFolderNameZOE(byte[] folderName)
         {
-            uint bitmask = 0xf;
             int i = 0;
             uint hashed = 0;
             uint hashed2 = 0;
@@ -60,10 +56,10 @@ namespace MGDecrypt
             uint a2 = 0;
             do
             {
-                hashed = (uint)i & bitmask;
+                hashed = (uint)i & 0xf;
                 hashed = a1 << (byte)hashed;
                 a0 = a2 >> 3;
-                hashed2 = a1 & bitmask;
+                hashed2 = a1 & 0xf;
                 a0 += hashed;
                 a0 += a1;
                 hashed2 = a2 << (byte)hashed2;
